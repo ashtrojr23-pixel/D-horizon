@@ -1,0 +1,14 @@
+{
+  "name": "LifeOS — Personal Life Dashboard",
+  "short_name": "LifeOS",
+  "description": "Your cinematic personal life, goals, and dream management assistant.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050508",
+  "theme_color": "#0a0a12",
+  "orientation": "any",
+  "icons": [
+    { "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%230a0a12'/><text y='130' x='24' font-size='130' font-family='serif'>🌟</text></svg>", "sizes": "192x192", "type": "image/svg+xml" },
+    { "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%230a0a12'/><text y='360' x='50' font-size='360' font-family='serif'>🌟</text></svg>", "sizes": "512x512", "type": "image/svg+xml" }
+  ]
+}

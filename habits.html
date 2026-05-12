@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Habits — LifeOS</title>
+<link rel="manifest" href="./manifest.json"/>
+<link rel="stylesheet" href="./css/main.css"/>
+<link rel="stylesheet" href="./css/animations.css"/>
+<link rel="stylesheet" href="./css/dashboard.css"/>
+<link rel="stylesheet" href="./css/goals.css"/>
+</head>
+<body>
+<div class="orb orb-blue"></div>
+<div class="orb orb-pink"></div>
+
+<div class="page-wrapper">
+  <div class="container section">
+
+    <div class="section-header animate-fade-up">
+      <div>
+        <h1>Life Habits <span class="shimmer-text">🔥</span></h1>
+        <p class="mt-8">Build consistency. Track your daily wins.</p>
+      </div>
+      <button class="btn btn-primary" id="add-habit-btn">＋ New Habit</button>
+    </div>
+
+    <!-- Today's Progress -->
+    <div class="card animate-fade-up delay-2" style="margin-bottom:32px;">
+      <div class="flex items-center justify-between mb-16">
+        <h3>Today's Progress</h3>
+        <span id="habit-today-badge" class="badge badge-blue">0 / 0</span>
+      </div>
+      <div class="progress-bar" style="height:10px;">
+        <div class="progress-fill progress-green" id="habit-today-bar" style="width:0%;"></div>
+      </div>
+      <div class="text-xs text-dim mt-8" id="habit-today-msg">Check off habits as you complete them.</div>
+    </div>
+
+    <!-- Habit List -->
+    <div class="animate-fade-up delay-3" style="margin-bottom:24px;">
+      <h3 style="margin-bottom:16px;">Your Habits</h3>
+      <div id="habits-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+
+    <!-- Habit Tips -->
+    <div class="card animate-fade-up delay-4" style="margin-bottom:120px;background:rgba(26,58,255,0.06);border-color:rgba(26,58,255,0.2);">
+      <h3 style="margin-bottom:16px;">💡 Habit Tips</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
+        <div class="suggestion-card"><div class="suggestion-icon">🌅</div><div class="suggestion-text">Do your most important habit first thing in the morning.</div></div>
+        <div class="suggestion-card"><div class="suggestion-icon">⛓️</div><div class="suggestion-text">Stack new habits onto existing ones for easier adoption.</div></div>
+        <div class="suggestion-card"><div class="suggestion-icon">📈</div><div class="suggestion-text">Track your streak daily — never miss twice in a row.</div></div>
+        <div class="suggestion-card"><div class="suggestion-icon">🏆</div><div class="suggestion-text">Celebrate small wins. Progress compounds over time.</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="./js/storage.js"></script>
+<script src="./js/auth.js"></script>
+<script src="./js/app.js"></script>
+<script src="./js/charts.js"></script>
+<script src="./js/island.js"></script>
+<script>
+  // Habits inline (no external module needed for this page)
+  injectIsland('habits');
+
+  const HabitsPage = {
+    init() {
+      this.renderHabits();
+      document.getElementById('add-habit-btn').addEventListener('click', () => this.addHabit());
+    },
+
+    renderHabits() {
+      const habits = LifeOS.getHabits();
+      const today = new Date().toISOString().split('T')[0];
+      const done = habits.filter(h => (h.log||[]).includes(today)).length;
+      const total = habits.length;
+
+      // Progress
+      document.getElementById('habit-today-badge').textContent = `${done} / ${total}`;
+      const pct = total ? (done/total)*100 : 0;
+      document.getElementById('habit-today-bar').style.width = pct + '%';
+      document.getElementById('habit-today-msg').textContent = done === total && total > 0
+        ? '🎉 All habits done for today!' : `${total - done} habit${total-done !== 1 ? 's' : ''} remaining today.`;
+
+      const container = document.getElementById('habits-list');
+      if (!habits.length) {
+        container.innerHTML = `<div class="empty-state">
+          <div class="empty-icon">🌱</div>
+          <div class="empty-title">No habits yet</div>
+          <div class="empty-desc">Add your first habit to start building a better life.</div>
+          <button class="btn btn-primary" onclick="document.getElementById('add-habit-btn').click()">＋ Add First Habit</button>
+        </div>`;
+        return;
+      }
+
+      container.innerHTML = habits.map(h => {
+        const doneToday = (h.log||[]).includes(today);
+        const streak = this.calcStreak(h.log||[]);
+        const week = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate()-i);
+          const ds = d.toISOString().split('T')[0];
+          const isToday = ds === today;
+          const isDone = (h.log||[]).includes(ds);
+          week.push(`<div class="week-dot ${isDone?'done':(isToday?'today':'')}" title="${ds}"></div>`);
+        }
+        return `
+        <div class="habit-item hover-gold">
+          <div class="habit-checkbox ${doneToday?'checked':''}" data-id="${h.id}" style="cursor:pointer;">${doneToday?'✓':''}</div>
+          <div class="habit-info">
+            <div class="habit-name">${h.icon||'✨'} ${h.name}</div>
+            <div class="habit-streak">Streak: <span class="habit-streak-badge">🔥 ${streak} days</span></div>
+            <div class="habit-week" style="margin-top:6px;">${week.join('')}</div>
+          </div>
+          <button class="goal-action-btn" data-del="${h.id}" title="Delete">🗑️</button>
+        </div>`;
+      }).join('');
+
+      container.querySelectorAll('.habit-checkbox').forEach(cb => {
+        cb.addEventListener('click', () => this.toggleToday(cb.dataset.id));
+      });
+      container.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (confirm('Delete this habit?')) {
+            LifeOS.saveHabits(LifeOS.getHabits().filter(h => h.id !== btn.dataset.del));
+            this.renderHabits();
+            Toast.show('Habit removed.', 'info');
+          }
+        });
+      });
+    },
+
+    calcStreak(log) {
+      if (!log.length) return 0;
+      const sorted = [...log].sort().reverse();
+      let streak = 0;
+      let d = new Date(); d.setHours(0,0,0,0);
+      for (const entry of sorted) {
+        const ed = new Date(entry); ed.setHours(0,0,0,0);
+        const diff = (d - ed) / 86400000;
+        if (diff <= 1) { streak++; d = ed; } else break;
+      }
+      return streak;
+    },
+
+    toggleToday(id) {
+      const habits = LifeOS.getHabits();
+      const idx = habits.findIndex(h => h.id === id);
+      if (idx < 0) return;
+      const today = new Date().toISOString().split('T')[0];
+      if (!habits[idx].log) habits[idx].log = [];
+      const li = habits[idx].log.indexOf(today);
+      if (li >= 0) { habits[idx].log.splice(li,1); Toast.show('Unchecked.','info'); }
+      else { habits[idx].log.push(today); Toast.show('🔥 Done! Keep the streak going!','success'); }
+      LifeOS.saveHabits(habits);
+      this.renderHabits();
+    },
+
+    addHabit() {
+      const name = prompt('What habit do you want to build?');
+      if (!name?.trim()) return;
+      const icon = prompt('Pick an emoji for this habit (optional):', '✨') || '✨';
+      const habits = LifeOS.getHabits();
+      habits.push({ id: uuid(), name: name.trim(), icon, log: [], created: Date.now() });
+      LifeOS.saveHabits(habits);
+      this.renderHabits();
+      Toast.show('Habit added! Start today 💪', 'success');
+    }
+  };
+
+  HabitsPage.init();
+  updateFinanceWidget();
+</script>
+</body>
+</html>

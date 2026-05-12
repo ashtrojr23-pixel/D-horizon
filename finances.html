@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Finances — LifeOS</title>
+<link rel="manifest" href="./manifest.json"/>
+<link rel="stylesheet" href="./css/main.css"/>
+<link rel="stylesheet" href="./css/animations.css"/>
+<link rel="stylesheet" href="./css/dashboard.css"/>
+<link rel="stylesheet" href="./css/goals.css"/>
+</head>
+<body>
+<div class="orb orb-blue"></div>
+<div class="orb orb-pink"></div>
+
+<div class="page-wrapper">
+  <div class="container section">
+
+    <div class="section-header animate-fade-up">
+      <div>
+        <h1>Finances <span class="shimmer-text">💰</span></h1>
+        <p class="mt-8">Plan your salary, track your spending, fund your dreams.</p>
+      </div>
+      <div class="flex gap-12" style="flex-wrap:wrap;">
+        <button class="btn btn-glass" id="set-salary-btn">💼 Set Salary</button>
+        <button class="btn btn-primary" id="add-expense-btn">＋ Log Expense</button>
+      </div>
+    </div>
+
+    <!-- Salary Hero -->
+    <div class="salary-display animate-fade-up delay-2">
+      <div class="salary-label">Monthly Salary</div>
+      <div class="salary-amount shimmer-text" id="salary-display">KSh 0</div>
+      <div class="text-sm text-dim mt-8">Tap "Set Salary" to update your monthly income</div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid-4 stagger-cards" style="margin-bottom:32px;">
+      <div class="stat-card stat-card-green">
+        <div class="stat-icon">💵</div>
+        <div class="stat-label">Take-Home</div>
+        <div class="stat-value text-green" id="fi-salary">KSh 0</div>
+      </div>
+      <div class="stat-card stat-card-pink">
+        <div class="stat-icon">💸</div>
+        <div class="stat-label">Total Spent</div>
+        <div class="stat-value text-pink" id="fi-spent">KSh 0</div>
+      </div>
+      <div class="stat-card stat-card-blue">
+        <div class="stat-icon">💾</div>
+        <div class="stat-label">Savings</div>
+        <div class="stat-value" id="fi-savings">KSh 0</div>
+      </div>
+      <div class="stat-card stat-card-gold">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-label">Dreams Cost</div>
+        <div class="stat-value text-gold" id="goals-total-cost">KSh 0</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="gap:24px;margin-bottom:120px;">
+
+      <!-- Budget Section -->
+      <div class="card animate-fade-up delay-3">
+        <div class="flex items-center justify-between mb-16">
+          <h3>Budget Buckets</h3>
+          <button class="btn btn-glass btn-sm" id="add-budget-btn">＋ Add Category</button>
+        </div>
+        <div id="budget-list">
+          <div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No budget set</div><div class="empty-desc">Add spending categories to track your budget.</div></div>
+        </div>
+      </div>
+
+      <!-- Expenses -->
+      <div class="card animate-fade-up delay-4">
+        <div class="flex items-center justify-between mb-16">
+          <h3>Recent Expenses</h3>
+          <button class="btn btn-pink btn-sm" id="add-expense-btn2">＋ Log</button>
+        </div>
+        <div id="expenses-list"></div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal-overlay" id="expense-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Log Expense</h3>
+      <button class="modal-close" onclick="Modal.close('expense-modal')">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="input-group">
+        <label class="input-label">Expense Name</label>
+        <input class="input" type="text" id="expense-name" placeholder="e.g. Grocery shopping"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="input-group">
+          <label class="input-label">Amount (KSh)</label>
+          <input class="input" type="number" id="expense-amount" placeholder="0" min="0"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Icon</label>
+          <input class="input" type="text" id="expense-icon" placeholder="💸" maxlength="4"/>
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Category</label>
+        <select class="input" id="expense-category">
+          <option value="">Select category</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px;">
+        <button class="btn btn-glass" onclick="Modal.close('expense-modal')">Cancel</button>
+        <button class="btn btn-primary" id="save-expense-btn">Save Expense</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./js/storage.js"></script>
+<script src="./js/auth.js"></script>
+<script src="./js/app.js"></script>
+<script src="./js/goals.js"></script>
+<script src="./js/charts.js"></script>
+<script src="./js/island.js"></script>
+<script>
+  injectIsland('finances');
+
+  function renderFinances() {
+    const f = LifeOS.getFinances();
+    const salary = f.salary || 0;
+    const totalSpent = (f.expenses||[]).reduce((s,e)=>s+e.amount,0);
+    const savings = salary - totalSpent;
+    const goals = LifeOS.getGoals();
+    const totalDreams = goals.reduce((s,g)=>s+(g.price||0),0);
+
+    document.getElementById('salary-display').textContent = fmt.ksh(salary);
+    document.getElementById('fi-salary').textContent = fmt.ksh(salary);
+    document.getElementById('fi-spent').textContent = fmt.ksh(totalSpent);
+    const savEl = document.getElementById('fi-savings');
+    savEl.textContent = fmt.ksh(savings);
+    savEl.style.color = savings >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('goals-total-cost').textContent = fmt.ksh(totalDreams);
+
+    // Budget list
+    const budgetEl = document.getElementById('budget-list');
+    if (!f.budget?.length) {
+      budgetEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No budget set</div><div class="empty-desc">Add spending categories to track your budget.</div></div>';
+    } else {
+      budgetEl.innerHTML = f.budget.map(b => {
+        const used = (f.expenses||[]).filter(e=>e.category===b.name).reduce((s,e)=>s+e.amount,0);
+        const pct = b.allocated ? Math.min((used/b.allocated)*100,100) : 0;
+        const over = used > b.allocated;
+        const color = over ? 'pink' : pct > 75 ? 'gold' : 'green';
+        return `
+        <div class="budget-bar">
+          <div class="budget-bar-header">
+            <span class="budget-bar-name">${b.icon||'💼'} ${b.name}</span>
+            <span class="budget-bar-amount">${fmt.ksh(used)} <span class="text-dim">/ ${fmt.ksh(b.allocated)}</span></span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-${color}" style="width:${pct}%;"></div>
+          </div>
+          <div class="flex justify-between mt-4">
+            <span class="text-xs text-dim">${pct.toFixed(0)}% used</span>
+            ${over ? '<span class="text-xs text-red">⚠️ Over budget!</span>' : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Expenses
+    const expEl = document.getElementById('expenses-list');
+    const recent = (f.expenses||[]).slice(-12).reverse();
+    if (!recent.length) {
+      expEl.innerHTML = '<div class="text-dim text-sm text-center" style="padding:20px;">No expenses logged yet.</div>';
+    } else {
+      expEl.innerHTML = recent.map(e => `
+        <div class="metric-card" style="margin-bottom:8px;">
+          <div class="metric-icon">${e.icon||'💸'}</div>
+          <div class="metric-info">
+            <div class="metric-label">${e.category||'General'}</div>
+            <div style="font-size:0.88rem;font-weight:600;">${e.name}</div>
+            <div class="text-xs text-dim">${fmt.date(e.date)}</div>
+          </div>
+          <div class="font-mono text-pink font-bold">-${fmt.ksh(e.amount)}</div>
+        </div>`).join('');
+    }
+    updateFinanceWidget();
+  }
+
+  // Set salary
+  document.getElementById('set-salary-btn').addEventListener('click', () => {
+    const current = LifeOS.getFinances().salary || '';
+    const val = prompt(`Enter monthly salary (KSh):\nCurrent: ${fmt.ksh(current)}`, current);
+    if (val === null) return;
+    const f = LifeOS.getFinances();
+    f.salary = Number(String(val).replace(/,/g,'')) || 0;
+    LifeOS.saveFinances(f);
+    renderFinances();
+    Toast.show('Salary updated! 💼', 'success');
+  });
+
+  // Add budget
+  document.getElementById('add-budget-btn').addEventListener('click', () => {
+    const name = prompt('Budget category (e.g. Food, Rent, Transport):');
+    if (!name?.trim()) return;
+    const amount = Number(prompt(`Monthly budget for "${name}" (KSh):`) || 0);
+    const icon = prompt('Emoji:', '💼') || '💼';
+    const f = LifeOS.getFinances();
+    if (!f.budget) f.budget = [];
+    f.budget.push({ name: name.trim(), allocated: amount, icon });
+    LifeOS.saveFinances(f);
+    renderFinances();
+    Toast.show('Budget category added!', 'success');
+  });
+
+  // Add expense
+  const openExpenseModal = () => {
+    const f = LifeOS.getFinances();
+    const cats = (f.budget||[]).map(b=>b.name);
+    const catSel = document.getElementById('expense-category');
+    catSel.innerHTML = `<option value="">Select category</option>` + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    Modal.open('expense-modal');
+  };
+  document.getElementById('add-expense-btn').addEventListener('click', openExpenseModal);
+  document.getElementById('add-expense-btn2').addEventListener('click', openExpenseModal);
+
+  document.getElementById('save-expense-btn').addEventListener('click', () => {
+    const name = document.getElementById('expense-name').value.trim();
+    const amount = Number(document.getElementById('expense-amount').value||0);
+    const category = document.getElementById('expense-category').value;
+    const icon = document.getElementById('expense-icon').value || '💸';
+    if (!name || !amount) { Toast.show('Fill in name and amount.', 'error'); return; }
+    const f = LifeOS.getFinances();
+    if (!f.expenses) f.expenses = [];
+    f.expenses.push({ id: uuid(), name, amount, category, icon, date: new Date().toISOString() });
+    LifeOS.saveFinances(f);
+    Modal.close('expense-modal');
+    document.getElementById('expense-name').value = '';
+    document.getElementById('expense-amount').value = '';
+    renderFinances();
+    Toast.show('Expense logged!', 'success');
+  });
+
+  renderFinances();
+</script>
+</body>
+</html>

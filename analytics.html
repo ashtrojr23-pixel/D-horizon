@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Analytics — LifeOS</title>
+<link rel="manifest" href="./manifest.json"/>
+<link rel="stylesheet" href="./css/main.css"/>
+<link rel="stylesheet" href="./css/animations.css"/>
+<link rel="stylesheet" href="./css/dashboard.css"/>
+<link rel="stylesheet" href="./css/goals.css"/>
+</head>
+<body>
+<div class="orb orb-blue"></div>
+<div class="orb orb-pink"></div>
+
+<div class="page-wrapper">
+  <div class="container section">
+
+    <div class="section-header animate-fade-up">
+      <div>
+        <h1>Analytics <span class="shimmer-text">📊</span></h1>
+        <p class="mt-8">Your weekly, monthly and yearly life report.</p>
+      </div>
+      <div class="time-toggle">
+        <button class="time-btn active" data-period="week">Week</button>
+        <button class="time-btn" data-period="month">Month</button>
+        <button class="time-btn" data-period="year">Year</button>
+      </div>
+    </div>
+
+    <!-- KPI Stats -->
+    <div class="grid-4 stagger-cards" style="margin-bottom:32px;">
+      <div class="stat-card stat-card-blue">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-label">Total Goals</div>
+        <div class="stat-value text-blue" id="stat-goals">0</div>
+      </div>
+      <div class="stat-card stat-card-green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Achieved</div>
+        <div class="stat-value text-green" id="stat-achieved">0</div>
+      </div>
+      <div class="stat-card stat-card-pink">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-label">Habits Done Today</div>
+        <div class="stat-value text-pink" id="stat-habits">0</div>
+      </div>
+      <div class="stat-card stat-card-gold">
+        <div class="stat-icon">💾</div>
+        <div class="stat-label">Net Savings</div>
+        <div class="stat-value" id="stat-savings">KSh 0</div>
+      </div>
+    </div>
+
+    <!-- Goals Progress Bar -->
+    <div class="card animate-fade-up delay-2" style="margin-bottom:24px;">
+      <div class="flex justify-between mb-12">
+        <h3>Overall Goals Progress</h3>
+        <span class="badge badge-blue" id="goals-pct-badge">0%</span>
+      </div>
+      <div class="progress-bar" style="height:12px;">
+        <div class="progress-fill progress-blue" id="goals-progress-bar" style="width:0%;"></div>
+      </div>
+      <div class="text-xs text-dim mt-8">Goals achieved vs total goals set</div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="analytics-grid" style="margin-bottom:32px;">
+
+      <!-- Habit Activity -->
+      <div class="chart-container animate-fade-up delay-2">
+        <div class="chart-title">🔥 Habit Activity <span class="badge badge-green" style="margin-left:auto;">Per Day</span></div>
+        <canvas id="habits-chart" width="400" height="180" style="width:100%;"></canvas>
+      </div>
+
+      <!-- Expense Trend -->
+      <div class="chart-container animate-fade-up delay-3">
+        <div class="chart-title">💸 Spending Trend <span class="badge badge-pink" style="margin-left:auto;">KSh</span></div>
+        <canvas id="expenses-chart" width="400" height="180" style="width:100%;"></canvas>
+      </div>
+
+      <!-- Goals Donut -->
+      <div class="chart-container animate-fade-up delay-4">
+        <div class="chart-title">🎯 Goals by Category</div>
+        <div class="donut-wrapper">
+          <canvas id="goals-donut" width="160" height="160" style="flex-shrink:0;"></canvas>
+          <div class="donut-legend" id="donut-legend"></div>
+        </div>
+      </div>
+
+      <!-- Budget Bars -->
+      <div class="chart-container animate-fade-up delay-5">
+        <div class="chart-title">💰 Budget Utilization</div>
+        <div id="budget-chart-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+    </div>
+
+    <!-- Alerts -->
+    <div class="grid-2" style="gap:24px;margin-bottom:32px;">
+      <div class="card animate-fade-up">
+        <h3 style="margin-bottom:16px;">⚠️ Alerts & Warnings</h3>
+        <div id="alerts-list"></div>
+      </div>
+      <div class="card animate-fade-up delay-2">
+        <h3 style="margin-bottom:16px;">💡 Suggestions</h3>
+        <div id="suggestions-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+    </div>
+
+    <!-- Achievements -->
+    <div class="card animate-fade-up" style="margin-bottom:120px;">
+      <h3 style="margin-bottom:16px;">🏆 Achievements</h3>
+      <div id="achievements-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="./js/storage.js"></script>
+<script src="./js/auth.js"></script>
+<script src="./js/app.js"></script>
+<script src="./js/goals.js"></script>
+<script src="./js/charts.js"></script>
+<script src="./js/analytics.js"></script>
+<script src="./js/island.js"></script>
+<script>
+  injectIsland('analytics');
+
+  // Override renderStats to also update budget chart and pct badge
+  const origRender = Analytics.renderStats.bind(Analytics);
+  Analytics.renderStats = function() {
+    origRender();
+    // Goals %
+    const goals = LifeOS.getGoals();
+    const achieved = goals.filter(g=>g.achieved).length;
+    const pct = goals.length ? Math.round((achieved/goals.length)*100) : 0;
+    const badge = document.getElementById('goals-pct-badge');
+    if (badge) badge.textContent = pct + '%';
+    const bar = document.getElementById('goals-progress-bar');
+    if (bar) bar.style.width = pct + '%';
+
+    // Budget utilization chart
+    const f = LifeOS.getFinances();
+    const budgetEl = document.getElementById('budget-chart-list');
+    if (budgetEl) {
+      if (!f.budget?.length) {
+        budgetEl.innerHTML = '<div class="text-dim text-sm text-center" style="padding:10px;">No budget categories set.</div>';
+      } else {
+        budgetEl.innerHTML = f.budget.map(b => {
+          const used = (f.expenses||[]).filter(e=>e.category===b.name).reduce((s,e)=>s+e.amount,0);
+          const pct = b.allocated ? Math.min((used/b.allocated)*100,100) : 0;
+          const over = used > b.allocated;
+          const color = over ? 'pink' : pct > 75 ? 'gold' : 'green';
+          return `
+          <div class="budget-bar">
+            <div class="budget-bar-header">
+              <span class="budget-bar-name">${b.icon||'💼'} ${b.name}</span>
+              <span class="${over?'text-red':'text-dim'} font-mono" style="font-size:0.8rem;">${pct.toFixed(0)}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill progress-${color}" style="width:${pct}%;"></div>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    }
+  };
+
+  Analytics.init();
+  updateFinanceWidget();
+</script>
+</body>
+</html>

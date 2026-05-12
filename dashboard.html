@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dashboard — LifeOS</title>
+<link rel="manifest" href="./manifest.json"/>
+<link rel="stylesheet" href="./css/main.css"/>
+<link rel="stylesheet" href="./css/animations.css"/>
+<link rel="stylesheet" href="./css/dashboard.css"/>
+</head>
+<body>
+<div class="orb orb-blue"></div>
+<div class="orb orb-pink"></div>
+
+<div class="page-wrapper">
+  <div class="container section">
+
+    <!-- Hero -->
+    <div class="animate-fade-up" style="margin-bottom:40px;">
+      <div class="flex items-center gap-12 mb-8">
+        <span class="badge badge-blue animate-pulse">● Live</span>
+        <span id="dash-date" class="text-sm text-dim mono"></span>
+      </div>
+      <h1 class="shimmer-text" id="dash-greeting">Good day ✦</h1>
+      <p id="dash-subtitle" style="margin-top:8px;font-size:1.1rem;">Here's your life at a glance.</p>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid-4 stagger-cards" style="margin-bottom:40px;" id="stats-row">
+      <div class="stat-card stat-card-blue">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-label">Total Goals</div>
+        <div class="stat-value text-blue" id="d-goals">0</div>
+        <div class="stat-sub" id="d-goals-sub">0 achieved</div>
+      </div>
+      <div class="stat-card stat-card-pink">
+        <div class="stat-icon">💰</div>
+        <div class="stat-label">Dream Cost</div>
+        <div class="stat-value text-pink" id="d-cost">KSh 0</div>
+        <div class="stat-sub">total value of dreams</div>
+      </div>
+      <div class="stat-card stat-card-green">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-label">Habits Today</div>
+        <div class="stat-value text-green" id="d-habits">0</div>
+        <div class="stat-sub" id="d-habits-sub">of 0 habits</div>
+      </div>
+      <div class="stat-card stat-card-gold">
+        <div class="stat-icon">💼</div>
+        <div class="stat-label">Monthly Salary</div>
+        <div class="stat-value text-gold" id="d-salary">KSh 0</div>
+        <div class="stat-sub" id="d-savings-sub">tap to update</div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card animate-fade-up delay-2" style="margin-bottom:40px;">
+      <div class="section-header" style="margin-bottom:16px;">
+        <h3>Quick Actions</h3>
+      </div>
+      <div class="flex gap-12" style="flex-wrap:wrap;">
+        <a href="./goals.html" class="btn btn-primary"><span>🎯</span> Add Goal</a>
+        <a href="./habits.html" class="btn btn-glass"><span>🔥</span> Track Habit</a>
+        <a href="./finances.html" class="btn btn-glass"><span>💰</span> Log Expense</a>
+        <a href="./analytics.html" class="btn btn-glass"><span>📊</span> Analytics</a>
+      </div>
+    </div>
+
+    <!-- Plan Sections -->
+    <div class="animate-fade-up delay-3">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-icon section-icon-blue">⏱️</div>
+          <h2>Short-Term Plans <span class="badge badge-blue" id="count-short">0</span></h2>
+        </div>
+        <span class="text-xs text-dim">0–6 months</span>
+      </div>
+      <div class="plans-section plans-short">
+        <div class="plans-section-body" id="dash-short">
+          <div class="empty-state"><div class="empty-icon">⏱️</div><div class="empty-title">No short-term plans yet</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="animate-fade-up delay-4" style="margin-top:32px;">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-icon section-icon-pink">🗓️</div>
+          <h2>Long-Term Plans <span class="badge badge-pink" id="count-long">0</span></h2>
+        </div>
+        <span class="text-xs text-dim">6 months–3 years</span>
+      </div>
+      <div class="plans-section plans-long">
+        <div class="plans-section-body" id="dash-long">
+          <div class="empty-state"><div class="empty-icon">🗓️</div><div class="empty-title">No long-term plans yet</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="animate-fade-up delay-5" style="margin-top:32px;margin-bottom:120px;">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-icon" style="background:rgba(201,168,76,0.15);">🌌</div>
+          <h2>The Future <span class="badge badge-gold" id="count-future">0</span></h2>
+        </div>
+        <span class="text-xs text-dim">3+ years ahead</span>
+      </div>
+      <div class="plans-section plans-future">
+        <div class="plans-section-body" id="dash-future">
+          <div class="empty-state"><div class="empty-icon">🌌</div><div class="empty-title">Dream big — add future goals</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="./js/storage.js"></script>
+<script src="./js/auth.js"></script>
+<script src="./js/app.js"></script>
+<script src="./js/goals.js"></script>
+<script src="./js/island.js"></script>
+<script>
+  const session = injectIsland('dashboard');
+  if (!session) throw new Error('Not authenticated');
+
+  // Greet
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('dash-greeting').textContent = `${greet}, ${session.name} ✦`;
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('dash-subtitle').textContent = `Here's your life at a glance — ${new Date().toLocaleDateString('en-KE', { month: 'long', year: 'numeric' })}.`;
+
+  function renderDashboard() {
+    const goals = LifeOS.getGoals();
+    const habits = LifeOS.getHabits();
+    const f = LifeOS.getFinances();
+    const today = new Date().toISOString().split('T')[0];
+
+    // Stats
+    const achieved = goals.filter(g => g.achieved).length;
+    const totalCost = goals.reduce((s, g) => s + (g.price || 0), 0);
+    const habitsDone = habits.filter(h => (h.log || []).includes(today)).length;
+    const salary = f.salary || 0;
+    const totalExp = (f.expenses || []).reduce((s, e) => s + e.amount, 0);
+    const savings = salary - totalExp;
+
+    animateCount(document.getElementById('d-goals'), 0, goals.length);
+    document.getElementById('d-goals-sub').textContent = `${achieved} achieved`;
+    document.getElementById('d-cost').textContent = fmt.ksh(totalCost);
+    animateCount(document.getElementById('d-habits'), 0, habitsDone);
+    document.getElementById('d-habits-sub').textContent = `of ${habits.length} habits`;
+    document.getElementById('d-salary').textContent = fmt.ksh(salary);
+    document.getElementById('d-savings-sub').textContent = savings >= 0 ? `Savings: ${fmt.ksh(savings)}` : `Deficit: ${fmt.ksh(Math.abs(savings))}`;
+
+    // Plans
+    const short = goals.filter(g => fmt.planCategory(g.targetDate) === 'short');
+    const long = goals.filter(g => fmt.planCategory(g.targetDate) === 'long');
+    const future = goals.filter(g => fmt.planCategory(g.targetDate) === 'future');
+
+    document.getElementById('count-short').textContent = short.length;
+    document.getElementById('count-long').textContent = long.length;
+    document.getElementById('count-future').textContent = future.length;
+
+    const renderMini = (containerId, items) => {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (!items.length) { el.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><div class="empty-title">None yet</div><div class="empty-desc">Add goals to populate this section.</div></div>`; return; }
+      el.innerHTML = `<div class="grid-auto stagger-cards">${items.slice(0,6).map(g => Goals._goalCardHTML(g)).join('')}</div>`;
+    };
+
+    renderMini('dash-short', short);
+    renderMini('dash-long', long);
+    renderMini('dash-future', future);
+
+    Goals.startCountdowns();
+    updateFinanceWidget();
+  }
+
+  renderDashboard();
+</script>
+</body>
+</html>
